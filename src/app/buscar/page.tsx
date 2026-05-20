@@ -1,11 +1,10 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Search, SlidersHorizontal, Map, List, X, LocateFixed, Loader2 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SchoolCard from '@/components/SchoolCard';
-import { SCHOOLS } from '@/lib/data';
 import { haversineDistance, formatDistance } from '@/lib/geo';
 import type { School } from '@/lib/types';
 
@@ -29,6 +28,8 @@ const STAGES = [
 type GeoState = 'idle' | 'loading' | 'granted' | 'denied';
 
 export default function BuscarPage() {
+  const [schools, setSchools] = useState<School[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(true);
   const [query, setQuery] = useState('');
   const [view, setView] = useState<'map' | 'list'>('list');
   const [showFilters, setShowFilters] = useState(false);
@@ -37,6 +38,13 @@ export default function BuscarPage() {
   });
   const [geoState, setGeoState] = useState<GeoState>('idle');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/schools')
+      .then(r => r.json())
+      .then(data => { setSchools(Array.isArray(data) ? data : []); setLoadingSchools(false); })
+      .catch(() => setLoadingSchools(false));
+  }, []);
 
   function requestLocation() {
     if (!navigator.geolocation) {
@@ -57,7 +65,7 @@ export default function BuscarPage() {
   }
 
   const schoolsWithDistance = useMemo(() => {
-    return SCHOOLS.map(s => ({
+    return schools.map(s => ({
       ...s,
       distanceKm: userLocation
         ? haversineDistance(userLocation.lat, userLocation.lng, s.lat, s.lng)
@@ -84,6 +92,18 @@ export default function BuscarPage() {
 
     return result;
   }, [query, filters, schoolsWithDistance, userLocation]);
+
+  if (loadingSchools) return (
+    <>
+      <Header />
+      <div className="pt-16 min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 size={32} className="animate-spin text-coral mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">Carregando escolas...</p>
+        </div>
+      </div>
+    </>
+  );
 
   const mapCenter: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
