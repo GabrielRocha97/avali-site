@@ -1,6 +1,6 @@
 'use client';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
-import MarkerClusterGroup from 'react-leaflet-cluster';
+import MarkerClusterGroup, { type MarkerCluster } from 'react-leaflet-cluster';
 import L from 'leaflet';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -30,7 +30,7 @@ const userMarkerIcon = L.divIcon({
   iconAnchor: [9, 9],
 });
 
-function createClusterIcon(cluster: L.MarkerCluster) {
+function createClusterIcon(cluster: MarkerCluster) {
   const count = cluster.getChildCount();
   const size = count < 10 ? 32 : count < 100 ? 38 : 44;
   return L.divIcon({
