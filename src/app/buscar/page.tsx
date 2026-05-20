@@ -270,8 +270,8 @@ export default function BuscarPage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 h-[calc(100vh-240px)]">
-              <div className="lg:col-span-2 rounded-2xl overflow-hidden shadow-card" style={{ minHeight: 400 }}>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:h-[calc(100vh-240px)]">
+              <div className="lg:col-span-2 rounded-2xl overflow-hidden shadow-card h-64 sm:h-80 lg:h-full">
                 <MapView
                   schools={filtered}
                   center={mapCenter}
@@ -279,7 +279,7 @@ export default function BuscarPage() {
                   userLocation={userLocation}
                 />
               </div>
-              <div className="overflow-y-auto space-y-4 pr-1">
+              <div className="lg:overflow-y-auto space-y-4 pr-1">
                 {filtered.map(school => (
                   <SchoolCard
                     key={school.id}
