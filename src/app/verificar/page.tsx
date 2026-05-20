@@ -1,11 +1,11 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import Header from '@/components/Header';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
-export default function VerificarPage() {
+function VerificarContent() {
   const router = useRouter();
   const params = useSearchParams();
   const phone = params.get('phone') ?? '';
@@ -127,5 +127,13 @@ export default function VerificarPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function VerificarPage() {
+  return (
+    <Suspense>
+      <VerificarContent />
+    </Suspense>
   );
 }
