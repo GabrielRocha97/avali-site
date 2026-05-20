@@ -51,7 +51,7 @@ export default async function EscolaPage({ params }: { params: { id: string } })
                 <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
                   <Heart size={16} /> Salvar
                 </button>
-                <Link href="/avaliar" className="btn-primary text-sm">Avaliar escola</Link>
+                <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary text-sm">Avaliar escola</Link>
               </div>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default async function EscolaPage({ params }: { params: { id: string } })
                 <h2 className="font-bold text-navy text-lg flex items-center gap-2">
                   <MessageSquare size={20} className="text-coral" /> Avaliações dos pais
                 </h2>
-                <Link href="/avaliar" className="text-sm font-bold text-coral hover:underline">+ Avaliar</Link>
+                <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="text-sm font-bold text-coral hover:underline">+ Avaliar</Link>
               </div>
 
               {reviews.length === 0 ? (
@@ -153,7 +153,7 @@ export default async function EscolaPage({ params }: { params: { id: string } })
                   <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
                   <p className="font-semibold">Nenhuma avaliação ainda</p>
                   <p className="text-sm mt-1">Seja o primeiro a avaliar esta escola</p>
-                  <Link href="/avaliar" className="btn-primary text-sm mt-4 inline-block">Avaliar agora</Link>
+                  <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary text-sm mt-4 inline-block">Avaliar agora</Link>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -216,7 +216,7 @@ export default async function EscolaPage({ params }: { params: { id: string } })
             <div className="card bg-navy text-white">
               <h3 className="font-bold text-lg mb-2">Você conhece esta escola?</h3>
               <p className="text-white/70 text-sm mb-4">Compartilhe sua experiência com outros pais.</p>
-              <Link href="/avaliar" className="btn-primary w-full text-center block">Avaliar esta escola</Link>
+              <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary w-full text-center block">Avaliar esta escola</Link>
             </div>
 
             <div className="card p-0 overflow-hidden h-48">
