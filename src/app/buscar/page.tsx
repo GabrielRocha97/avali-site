@@ -46,6 +46,23 @@ export default function BuscarPage() {
       .catch(() => setLoadingSchools(false));
   }, []);
 
+  // Auto-solicita localização ao entrar na página
+  useEffect(() => {
+    if (!navigator.geolocation) { setGeoState('denied'); return; }
+    setGeoState('loading');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoState('granted');
+        setFilters(f => ({ ...f, sortByDistance: true }));
+        setView('map');
+      },
+      () => setGeoState('denied'),
+      { timeout: 10000, maximumAge: 300000 },
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function requestLocation() {
     if (!navigator.geolocation) {
       setGeoState('denied');

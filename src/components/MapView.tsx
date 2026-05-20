@@ -6,21 +6,17 @@ import { useEffect } from 'react';
 import { Star } from 'lucide-react';
 import type { School } from '@/lib/types';
 
-function createSchoolMarker(rating: number) {
-  return L.divIcon({
-    className: '',
-    html: `<div style="
-      background:#E8694A;color:white;font-weight:800;font-size:11px;
-      width:36px;height:36px;border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);border:2px solid white;
-      box-shadow:0 2px 8px rgba(0,0,0,0.25);
-      display:flex;align-items:center;justify-content:center;
-    "><span style="transform:rotate(45deg)">${rating.toFixed(1)}</span></div>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -38],
-  });
-}
+const schoolMarkerIcon = L.divIcon({
+  className: '',
+  html: `<div style="
+    width:12px;height:12px;border-radius:50%;
+    background:#E8694A;border:2.5px solid white;
+    box-shadow:0 1px 4px rgba(0,0,0,0.35);
+  "></div>`,
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+  popupAnchor: [0, -8],
+});
 
 const userMarkerIcon = L.divIcon({
   className: '',
@@ -73,7 +69,7 @@ export default function MapView({ schools, center = [-15.78, -47.93], zoom = 5, 
       )}
 
       {schools.map(school => (
-        <Marker key={school.id} position={[school.lat, school.lng]} icon={createSchoolMarker(school.rating)}>
+        <Marker key={school.id} position={[school.lat, school.lng]} icon={schoolMarkerIcon}>
           <Popup maxWidth={260}>
             <div className="p-1 font-sans">
               <p className="font-bold text-sm text-navy mb-1">{school.name}</p>
