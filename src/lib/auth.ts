@@ -2,6 +2,7 @@ import type { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
@@ -11,12 +12,22 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login',
   },
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     session({ session, token }) {
       if (session.user && token.sub) {
         (session.user as { id?: string }).id = token.sub;
       }
       return session;
+    },
+    jwt({ token, account }) {
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
   },
 };

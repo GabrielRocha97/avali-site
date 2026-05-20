@@ -26,7 +26,7 @@ export default function LoginPage() {
 
   async function handleGoogleSignIn() {
     setLoading(true);
-    await signIn('google', { callbackUrl: '/' });
+    await signIn('google', { callbackUrl: '/dashboard/pais' });
   }
 
   function handleContinue() {

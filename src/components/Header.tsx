@@ -1,13 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Menu, X, LogOut, LayoutDashboard } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
 
 const NAV = [
   { label: 'Início', href: '/' },
   { label: 'Escolas', href: '/buscar' },
-  { label: 'Profissionais', href: '/profissionais' },
   { label: 'Para Pais', href: '/#para-pais' },
   { label: 'Para Escolas', href: '/precos#escolas' },
 ];
@@ -15,7 +14,18 @@ const NAV = [
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const { data: session, status } = useSession();
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
@@ -51,7 +61,7 @@ export default function Header() {
           {status === 'loading' ? (
             <div className="w-8 h-8 rounded-full bg-cream-card animate-pulse" />
           ) : session?.user ? (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-cream-card transition-colors">
