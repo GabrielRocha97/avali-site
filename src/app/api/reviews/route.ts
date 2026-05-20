@@ -36,7 +36,6 @@ export async function POST(req: Request) {
 
   const { error } = await sb.from('reviews').insert({
     school_id: schoolId || null,
-    profile_id: profile?.id ?? null,
     author_name: isAnonymous ? 'Anônimo' : (profile?.name ?? session.user.name ?? 'Usuário'),
     is_anonymous: isAnonymous ?? false,
     rating: overallRating,
@@ -48,7 +47,6 @@ export async function POST(req: Request) {
     monthly_fee: Number(monthlyFee) || 0,
     stage: stage || '',
     year: Number(year) || new Date().getFullYear(),
-    status: 'published',
   });
 
   if (error) {
