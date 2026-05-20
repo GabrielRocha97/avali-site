@@ -53,7 +53,10 @@ export async function POST(req: Request) {
 
   if (error) {
     console.error('[reviews POST]', error);
-    return NextResponse.json({ error: 'Erro ao salvar avaliação' }, { status: 500 });
+    const msg = error.code === '42P01'
+      ? 'Tabela reviews não existe — rode o SQL no Supabase'
+      : `Erro ao salvar avaliação: ${error.message}`;
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

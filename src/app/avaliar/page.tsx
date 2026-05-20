@@ -42,6 +42,28 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
   );
 }
 
+function parseBRL(masked: string): string {
+  return masked.replace(/\D/g, '');
+}
+
+function formatBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '';
+  return `R$ ${Number(digits).toLocaleString('pt-BR')}`;
+}
+
+function CurrencyInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
+  return (
+    <input
+      value={value ? formatBRL(value) : ''}
+      onChange={e => onChange(parseBRL(e.target.value))}
+      placeholder={placeholder}
+      inputMode="numeric"
+      className="input"
+    />
+  );
+}
+
 function AvaliarContent() {
   const params = useSearchParams();
   const router = useRouter();
@@ -240,25 +262,21 @@ function AvaliarContent() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-sm font-semibold text-navy block mb-1">Mensalidade</label>
-                      <input value={data.monthlyFee} onChange={e => set('monthlyFee', e.target.value)}
-                        placeholder="R$ 0,00" className="input" type="number" min="0" />
+                      <CurrencyInput value={data.monthlyFee} onChange={v => set('monthlyFee', v)} placeholder="R$ 0" />
                     </div>
                     <div>
                       <label className="text-sm font-semibold text-navy block mb-1">Matrícula</label>
-                      <input value={data.enrollment} onChange={e => set('enrollment', e.target.value)}
-                        placeholder="R$ 0,00" className="input" type="number" min="0" />
+                      <CurrencyInput value={data.enrollment} onChange={v => set('enrollment', v)} placeholder="R$ 0" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-sm font-semibold text-navy block mb-1">Material escolar</label>
-                      <input value={data.material} onChange={e => set('material', e.target.value)}
-                        placeholder="R$ 0,00" className="input" type="number" min="0" />
+                      <CurrencyInput value={data.material} onChange={v => set('material', v)} placeholder="R$ 0" />
                     </div>
                     <div>
                       <label className="text-sm font-semibold text-navy block mb-1">Alimentação/mês</label>
-                      <input value={data.meals} onChange={e => set('meals', e.target.value)}
-                        placeholder="R$ 0,00" className="input" type="number" min="0" />
+                      <CurrencyInput value={data.meals} onChange={v => set('meals', v)} placeholder="R$ 0" />
                     </div>
                   </div>
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
