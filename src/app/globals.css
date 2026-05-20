@@ -1,0 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+@import 'leaflet/dist/leaflet.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Nunito', system-ui, sans-serif; background: #FFF9F3; color: #2C1F14; }
+  * { box-sizing: border-box; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-coral text-white font-bold px-6 py-3 rounded-xl hover:bg-coral-dark transition-all shadow-sm hover:shadow-md;
+  }
+  .btn-secondary {
+    @apply bg-white text-navy font-bold px-6 py-3 rounded-xl border-2 border-navy hover:bg-navy hover:text-white transition-all;
+  }
+  .btn-ghost {
+    @apply text-navy font-semibold px-4 py-2 rounded-xl hover:bg-cream-card transition-all;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-card p-6;
+  }
+  .input {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-coral/30 focus:border-coral bg-white;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+}
+
+/* Rating bar */
+.rating-bar-fill { transition: width 0.6s ease; }
+
+/* Map fixes */
+.leaflet-container { border-radius: 16px; }
+.leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.12) !important; }
