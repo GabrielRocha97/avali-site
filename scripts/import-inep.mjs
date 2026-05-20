@@ -1,56 +1,47 @@
 /**
- * Importador de escolas do INEP para o Supabase — Vale do Paraíba SP
- *
- * Como usar:
- * 1. Baixe o Censo Escolar em: https://www.gov.br/inep/pt-br/acesso-a-informacao/dados-abertos/microdados/censo-escolar
- * 2. Extraia o arquivo CSV (ex: microdados_ed_basica_2023.csv)
- * 3. Execute: node scripts/import-inep.mjs <caminho-do-csv>
- *
- * Requer no .env.local:
- *   NEXT_PUBLIC_SUPABASE_URL
- *   NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * Importador Censo Escolar INEP 2025 → Supabase
+ * Uso: node scripts/import-inep.mjs <caminho-do-csv>
+ * Ex:  node scripts/import-inep.mjs "C:\Users\amaro\Downloads\inep_2025\microdados_censo_escolar_2025\dados\Tabela_Escola_2025.csv"
  */
 
 import fs from 'fs';
 import readline from 'readline';
 import { createClient } from '@supabase/supabase-js';
 
-// ─── Configuração ────────────────────────────────────────────
 const SUPABASE_URL = 'https://sqxpsvxtztmxexqzngqs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Tu52D6Y3u-h-ONMC6zpLXw_kHh2sBv4';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Municípios do Vale do Paraíba SP (nome exato como no INEP)
+// Municípios do Vale do Paraíba SP
 const VALE_CIDADES = new Set([
-  'São José dos Campos', 'Taubaté', 'Jacareí', 'Caçapava',
-  'Pindamonhangaba', 'Guaratinguetá', 'Lorena', 'Cruzeiro',
-  'Aparecida', 'Tremembé', 'Roseira', 'Potim', 'Cunha',
-  'Cachoeira Paulista', 'Piquete', 'Bananal', 'Queluz',
-  'Lavrinhas', 'Canas', 'Silveiras', 'Arapeí',
-  'São José do Barreiro', 'Redenção da Serra', 'Natividade da Serra',
-  'Santa Branca', 'Paraibuna', 'Jambeiro', 'Monteiro Lobato',
-  'São Bento do Sapucaí', 'Campos do Jordão', 'Santo Antônio do Pinhal',
-  'São Luís do Paraitinga', 'Lagoinha',
+  'SÃO JOSÉ DOS CAMPOS','TAUBATÉ','JACAREÍ','CAÇAPAVA',
+  'PINDAMONHANGABA','GUARATINGUETÁ','LORENA','CRUZEIRO',
+  'APARECIDA','TREMEMBÉ','ROSEIRA','POTIM','CUNHA',
+  'CACHOEIRA PAULISTA','PIQUETE','BANANAL','QUELUZ',
+  'LAVRINHAS','CANAS','SILVEIRAS','ARAPEÍ',
+  'SÃO JOSÉ DO BARREIRO','REDENÇÃO DA SERRA','NATIVIDADE DA SERRA',
+  'SANTA BRANCA','PARAIBUNA','JAMBEIRO','MONTEIRO LOBATO',
+  'SÃO BENTO DO SAPUCAÍ','CAMPOS DO JORDÃO','SANTO ANTÔNIO DO PINHAL',
+  'SÃO LUÍS DO PARAITINGA','LAGOINHA',
 ]);
 
-// Coordenadas centrais das cidades (fallback quando geocoding falhar)
+// Coordenadas centrais como fallback
 const CITY_CENTERS = {
-  'São José dos Campos': { lat: -23.1896, lng: -45.8841 },
-  'Taubaté':             { lat: -23.0268, lng: -45.5554 },
-  'Jacareí':             { lat: -23.2987, lng: -45.9655 },
-  'Caçapava':            { lat: -23.1019, lng: -45.7075 },
-  'Pindamonhangaba':     { lat: -22.9239, lng: -45.4614 },
-  'Guaratinguetá':       { lat: -22.8164, lng: -45.1939 },
-  'Lorena':              { lat: -22.7274, lng: -45.1226 },
-  'Cruzeiro':            { lat: -22.5771, lng: -44.9627 },
-  'Aparecida':           { lat: -22.8492, lng: -45.2311 },
-  'Tremembé':            { lat: -22.9598, lng: -45.5497 },
-  'Campos do Jordão':    { lat: -22.7390, lng: -45.5910 },
-  'Cachoeira Paulista':  { lat: -22.6792, lng: -45.0075 },
-  'Cunha':               { lat: -23.0742, lng: -44.9581 },
+  'SÃO JOSÉ DOS CAMPOS': [-23.1896, -45.8841],
+  'TAUBATÉ':             [-23.0268, -45.5554],
+  'JACAREÍ':             [-23.2987, -45.9655],
+  'CAÇAPAVA':            [-23.1019, -45.7075],
+  'PINDAMONHANGABA':     [-22.9239, -45.4614],
+  'GUARATINGUETÁ':       [-22.8164, -45.1939],
+  'LORENA':              [-22.7274, -45.1226],
+  'CRUZEIRO':            [-22.5771, -44.9627],
+  'APARECIDA':           [-22.8492, -45.2311],
+  'TREMEMBÉ':            [-22.9598, -45.5497],
+  'CAMPOS DO JORDÃO':    [-22.7390, -45.5910],
+  'CACHOEIRA PAULISTA':  [-22.6792, -45.0075],
+  'CUNHA':               [-23.0742, -44.9581],
 };
 
-// Mapeamento tipo INEP → tipo Avali
 function mapType(tp) {
   const t = parseInt(tp);
   if (t === 1) return 'federal';
@@ -59,42 +50,26 @@ function mapType(tp) {
   return 'particular';
 }
 
-// Etapas de ensino ofertadas
-function mapStages(row, headers) {
-  const stages = [];
-  const get = (col) => row[headers.indexOf(col)] || '0';
-  if (get('IN_EDUCACAO_INFANTIL') === '1') stages.push('infantil');
-  if (get('IN_ENSINO_FUNDAMENTAL') === '1') stages.push('fundamental');
-  if (get('IN_ENSINO_MEDIO') === '1' || get('IN_ENSINO_MEDIO_TECNICO') === '1') stages.push('medio');
-  return stages.length ? stages : ['fundamental'];
+function mapStages(get) {
+  const stages = new Set();
+  if (get('IN_COMUM_CRECHE') === '1' || get('IN_COMUM_PRE') === '1') stages.add('infantil');
+  if (get('IN_COMUM_FUND_AI') === '1' || get('IN_COMUM_FUND_AF') === '1') stages.add('fundamental');
+  if (get('IN_COMUM_MEDIO_MEDIO') === '1' || get('IN_COMUM_MEDIO_INTEGRADO') === '1') stages.add('medio');
+  return stages.size ? [...stages] : ['fundamental'];
 }
 
-// Geocoding via Nominatim (1 req/s)
-async function geocode(address, city, state) {
-  try {
-    const q = encodeURIComponent(`${address}, ${city}, ${state}, Brasil`);
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
-      { headers: { 'User-Agent': 'Avali/1.0 (avali.com.br)' } }
-    );
-    const data = await res.json();
-    if (data[0]) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-  } catch {}
-  return CITY_CENTERS[city] || { lat: -23.18, lng: -45.88 };
-}
-
-function slugify(text) {
+function slugify(text, code) {
   return text.toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    + '-' + code;
 }
 
-async function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
+function normalizeName(name) {
+  // Converte de maiúsculas para Title Case
+  return name.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ─── Importação principal ─────────────────────────────────────
 async function main() {
   const csvPath = process.argv[2];
   if (!csvPath) {
@@ -108,45 +83,58 @@ async function main() {
   });
 
   let headers = [];
-  let count = 0;
-  let imported = 0;
+  let lineCount = 0;
+  let processed = 0;
+  let skipped = 0;
   const batch = [];
 
   for await (const line of rl) {
     const row = line.split(';').map(v => v.replace(/"/g, '').trim());
 
-    if (count === 0) {
+    if (lineCount === 0) {
       headers = row;
-      count++;
+      lineCount++;
       continue;
     }
+    lineCount++;
 
-    const get = (col) => row[headers.indexOf(col)] || '';
+    const get = (col) => {
+      const idx = headers.indexOf(col);
+      return idx >= 0 ? (row[idx] || '') : '';
+    };
 
-    // Filtrar por estado SP e cidades do Vale
+    // Filtros: apenas SP, Vale do Paraíba, escolas ativas
     if (get('SG_UF') !== 'SP') continue;
-    const city = get('NO_MUNICIPIO');
+    const city = get('NO_MUNICIPIO').toUpperCase().trim();
     if (!VALE_CIDADES.has(city)) continue;
+    if (get('TP_SITUACAO_FUNCIONAMENTO') !== '1') { skipped++; continue; }
 
-    // Apenas escolas ativas
-    if (get('TP_SITUACAO_FUNCIONAMENTO') !== '1') continue;
+    const inepCode  = get('CO_ENTIDADE');
+    const rawName   = get('NO_ENTIDADE');
+    const name      = normalizeName(rawName);
+    const address   = `${get('DS_ENDERECO')} ${get('NU_ENDERECO')}`.trim();
+    const neighborhood = normalizeName(get('NO_BAIRRO') || '');
+    const zipCode   = get('CO_CEP').padStart(8, '0');
+    const type      = mapType(get('TP_DEPENDENCIA'));
+    const stages    = mapStages(get);
+    const phone     = get('NU_DDD') && get('NU_TELEFONE')
+                        ? `(${get('NU_DDD')}) ${get('NU_TELEFONE')}` : '';
 
-    const inepCode = get('CO_ENTIDADE');
-    const name = get('NO_ENTIDADE');
-    const address = `${get('DS_ENDERECO')} ${get('NU_ENDERECO')}`.trim();
-    const neighborhood = get('NO_BAIRRO') || '';
-    const zipCode = get('CO_CEP').padStart(8, '0');
-    const type = mapType(get('TP_DEPENDENCIA'));
-    const stages = mapStages(row, headers);
-    const isAutismFriendly = name.toLowerCase().includes('aee') ||
-                              name.toLowerCase().includes('especial') ||
-                              name.toLowerCase().includes('inclusiv');
+    // Latitude/Longitude: INEP 2025 já fornece (vírgula decimal → ponto)
+    const latRaw = get('LATITUDE').replace(',', '.');
+    const lngRaw = get('LONGITUDE').replace(',', '.');
+    const fallback = CITY_CENTERS[city] || [-23.18, -45.88];
+    const lat = parseFloat(latRaw) || fallback[0];
+    const lng = parseFloat(lngRaw) || fallback[1];
 
-    // Geocoding com rate limit de 1/s
-    const coords = await geocode(address, city, 'SP');
-    await sleep(1100);
+    // Detectar possível escola autismo-friendly
+    const nameLower = rawName.toLowerCase();
+    const isAutismFriendly =
+      nameLower.includes('aee') || nameLower.includes('especial') ||
+      nameLower.includes('inclusiv') || nameLower.includes('apae');
 
-    const slug = `${slugify(name)}-${inepCode}`;
+    const cityNice = normalizeName(city);
+    const slug = slugify(rawName, inepCode);
 
     batch.push({
       inep_code: inepCode,
@@ -155,12 +143,13 @@ async function main() {
       type,
       stages,
       address,
-      city,
+      city: cityNice,
       state: 'SP',
       neighborhood,
       zip_code: zipCode,
-      lat: coords.lat,
-      lng: coords.lng,
+      lat,
+      lng,
+      phone,
       rating: 0,
       review_count: 0,
       avg_price: 0,
@@ -169,26 +158,30 @@ async function main() {
       is_claimed: false,
       categories: [],
       highlights: [],
+      description: '',
     });
 
-    imported++;
-    process.stdout.write(`\r📥 ${imported} escolas processadas (${city})`);
+    processed++;
+    process.stdout.write(`\r📥 ${processed} escolas (${cityNice})                    `);
 
-    // Inserir em lotes de 50
-    if (batch.length >= 50) {
+    // Inserir em lotes de 100
+    if (batch.length >= 100) {
       const { error } = await supabase.from('schools').upsert(batch, { onConflict: 'inep_code' });
-      if (error) console.error('\nErro ao inserir lote:', error.message);
+      if (error) console.error('\n❌ Erro no lote:', error.message);
       batch.length = 0;
     }
   }
 
-  // Inserir restantes
+  // Lote final
   if (batch.length > 0) {
     const { error } = await supabase.from('schools').upsert(batch, { onConflict: 'inep_code' });
-    if (error) console.error('\nErro ao inserir lote final:', error.message);
+    if (error) console.error('\n❌ Erro no lote final:', error.message);
   }
 
-  console.log(`\n\n✅ Importação concluída: ${imported} escolas do Vale do Paraíba`);
+  console.log(`\n\n✅ Concluído!`);
+  console.log(`   ${processed} escolas importadas do Vale do Paraíba`);
+  console.log(`   ${skipped} escolas inativas ignoradas`);
+  console.log(`   Total de linhas processadas: ${lineCount}`);
 }
 
 main().catch(console.error);
