@@ -53,12 +53,22 @@ function rowToReview(r: Record<string, unknown>): Review {
 }
 
 export async function getAllSchools(): Promise<School[]> {
-  const { data, error } = await supabase
-    .from('schools')
-    .select('*')
-    .order('rating', { ascending: false });
-  if (error || !data) return [];
-  return data.map(rowToSchool);
+  const all: School[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('*')
+      .order('name', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) { console.error('[db getAllSchools] error:', error); break; }
+    if (!data || data.length === 0) break;
+    all.push(...data.map(rowToSchool));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
 }
 
 export async function getSchoolByIdOrSlug(idOrSlug: string): Promise<School | null> {

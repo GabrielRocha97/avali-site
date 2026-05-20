@@ -9,7 +9,7 @@ import readline from 'readline';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = 'https://sqxpsvxtztmxexqzngqs.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Tu52D6Y3u-h-ONMC6zpLXw_kHh2sBv4';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'sb_publishable_Tu52D6Y3u-h-ONMC6zpLXw_kHh2sBv4';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Municípios do Vale do Paraíba SP
