@@ -12,35 +12,8 @@ const SUPABASE_URL = 'https://sqxpsvxtztmxexqzngqs.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || 'sb_publishable_Tu52D6Y3u-h-ONMC6zpLXw_kHh2sBv4';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Municípios do Vale do Paraíba SP
-const VALE_CIDADES = new Set([
-  'SÃO JOSÉ DOS CAMPOS','TAUBATÉ','JACAREÍ','CAÇAPAVA',
-  'PINDAMONHANGABA','GUARATINGUETÁ','LORENA','CRUZEIRO',
-  'APARECIDA','TREMEMBÉ','ROSEIRA','POTIM','CUNHA',
-  'CACHOEIRA PAULISTA','PIQUETE','BANANAL','QUELUZ',
-  'LAVRINHAS','CANAS','SILVEIRAS','ARAPEÍ',
-  'SÃO JOSÉ DO BARREIRO','REDENÇÃO DA SERRA','NATIVIDADE DA SERRA',
-  'SANTA BRANCA','PARAIBUNA','JAMBEIRO','MONTEIRO LOBATO',
-  'SÃO BENTO DO SAPUCAÍ','CAMPOS DO JORDÃO','SANTO ANTÔNIO DO PINHAL',
-  'SÃO LUÍS DO PARAITINGA','LAGOINHA',
-]);
-
-// Coordenadas centrais como fallback
-const CITY_CENTERS = {
-  'SÃO JOSÉ DOS CAMPOS': [-23.1896, -45.8841],
-  'TAUBATÉ':             [-23.0268, -45.5554],
-  'JACAREÍ':             [-23.2987, -45.9655],
-  'CAÇAPAVA':            [-23.1019, -45.7075],
-  'PINDAMONHANGABA':     [-22.9239, -45.4614],
-  'GUARATINGUETÁ':       [-22.8164, -45.1939],
-  'LORENA':              [-22.7274, -45.1226],
-  'CRUZEIRO':            [-22.5771, -44.9627],
-  'APARECIDA':           [-22.8492, -45.2311],
-  'TREMEMBÉ':            [-22.9598, -45.5497],
-  'CAMPOS DO JORDÃO':    [-22.7390, -45.5910],
-  'CACHOEIRA PAULISTA':  [-22.6792, -45.0075],
-  'CUNHA':               [-23.0742, -44.9581],
-};
+// Coordenada central do Brasil como fallback genérico
+const BRAZIL_CENTER = [-15.78, -47.93];
 
 function mapType(tp) {
   const t = parseInt(tp);
@@ -103,11 +76,9 @@ async function main() {
       return idx >= 0 ? (row[idx] || '') : '';
     };
 
-    // Filtros: apenas SP, Vale do Paraíba, escolas ativas
-    if (get('SG_UF') !== 'SP') continue;
-    const city = get('NO_MUNICIPIO').toUpperCase().trim();
-    if (!VALE_CIDADES.has(city)) continue;
+    // Filtro: apenas escolas ativas (nível Brasil)
     if (get('TP_SITUACAO_FUNCIONAMENTO') !== '1') { skipped++; continue; }
+    const city = get('NO_MUNICIPIO').toUpperCase().trim();
 
     const inepCode  = get('CO_ENTIDADE');
     const rawName   = get('NO_ENTIDADE');
@@ -123,7 +94,7 @@ async function main() {
     // Latitude/Longitude: INEP 2025 já fornece (vírgula decimal → ponto)
     const latRaw = get('LATITUDE').replace(',', '.');
     const lngRaw = get('LONGITUDE').replace(',', '.');
-    const fallback = CITY_CENTERS[city] || [-23.18, -45.88];
+    const fallback = BRAZIL_CENTER;
     const lat = parseFloat(latRaw) || fallback[0];
     const lng = parseFloat(lngRaw) || fallback[1];
 
@@ -144,7 +115,7 @@ async function main() {
       stages,
       address,
       city: cityNice,
-      state: 'SP',
+      state: get('SG_UF') || '',
       neighborhood,
       zip_code: zipCode,
       lat,
@@ -179,7 +150,7 @@ async function main() {
   }
 
   console.log(`\n\n✅ Concluído!`);
-  console.log(`   ${processed} escolas importadas do Vale do Paraíba`);
+  console.log(`   ${processed} escolas importadas (Brasil)`);
   console.log(`   ${skipped} escolas inativas ignoradas`);
   console.log(`   Total de linhas processadas: ${lineCount}`);
 }

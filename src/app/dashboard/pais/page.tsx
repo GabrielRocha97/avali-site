@@ -2,12 +2,33 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { Star, Heart, Bell, BookOpen, TrendingUp, Search, ChevronRight, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Star, Heart, Bell, BookOpen, TrendingUp, Search, CheckCircle, Loader2, X } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
+interface SavedSchool { school_id: string; school_name: string }
+
 export default function DashboardPaisPage() {
   const { data: session } = useSession();
+  const [saved, setSaved] = useState<SavedSchool[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/favorites')
+      .then(r => r.json())
+      .then(d => { setSaved(Array.isArray(d) ? d : []); setLoadingSaved(false); })
+      .catch(() => setLoadingSaved(false));
+  }, []);
+
+  async function removeSaved(schoolId: string) {
+    await fetch('/api/favorites', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schoolId }),
+    });
+    setSaved(s => s.filter(x => x.school_id !== schoolId));
+  }
 
   const firstName = session?.user?.name?.split(' ')[0] ?? 'por aqui';
   const avatar = session?.user?.image;
@@ -73,11 +94,30 @@ export default function DashboardPaisPage() {
                   </h2>
                   <Link href="/buscar" className="text-sm text-coral font-bold hover:underline">+ Adicionar</Link>
                 </div>
-                <div className="text-center py-8 text-gray-400">
-                  <Heart size={28} className="mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">Nenhuma escola salva ainda</p>
-                  <Link href="/buscar" className="btn-primary text-sm mt-3 inline-block">Buscar escolas</Link>
-                </div>
+                {loadingSaved ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 size={24} className="animate-spin text-coral" />
+                  </div>
+                ) : saved.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Heart size={28} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Nenhuma escola salva ainda</p>
+                    <Link href="/buscar" className="btn-primary text-sm mt-3 inline-block">Buscar escolas</Link>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {saved.map(s => (
+                      <div key={s.school_id} className="flex items-center justify-between gap-3 p-3 bg-cream-card rounded-xl">
+                        <Link href={`/escola/${s.school_id}`} className="flex-1 min-w-0">
+                          <p className="font-semibold text-navy text-sm truncate hover:text-coral transition-colors">{s.school_name}</p>
+                        </Link>
+                        <button onClick={() => removeSaved(s.school_id)} className="text-gray-400 hover:text-red-400 transition-colors shrink-0">
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* My reviews */}

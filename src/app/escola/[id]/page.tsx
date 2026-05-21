@@ -1,20 +1,45 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
-  MapPin, Star, Phone, Globe, CheckCircle, Heart,
-  MessageSquare, TrendingUp, AlertCircle, ExternalLink,
+  MapPin, Star, Phone, CheckCircle,
+  TrendingUp, AlertCircle, ExternalLink,
 } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { createClient } from '@supabase/supabase-js';
+import { authOptions } from '@/lib/auth';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import ReviewsSection from '@/components/ReviewsSection';
+import SaveButton from '@/components/SaveButton';
 import { getSchoolByIdOrSlug, getReviewsForSchool } from '@/lib/db';
-import { PROFESSIONALS } from '@/lib/data';
+
+const ADMIN_EMAIL = 'amarorocha97@gmail.com';
+
+async function checkSaved(email: string, schoolId: string): Promise<boolean> {
+  try {
+    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
+    const { data: profile } = await sb.from('profiles').select('id').eq('email', email).single();
+    if (!profile) return false;
+    const { data } = await sb.from('favorites').select('id').eq('profile_id', profile.id).eq('school_id', schoolId).single();
+    return !!data;
+  } catch {
+    return false;
+  }
+}
 
 export default async function EscolaPage({ params }: { params: { id: string } }) {
-  const school = await getSchoolByIdOrSlug(params.id);
+  const [school, session] = await Promise.all([
+    getSchoolByIdOrSlug(params.id),
+    getServerSession(authOptions),
+  ]);
   if (!school) notFound();
 
-  const reviews = await getReviewsForSchool(school.id);
-  const nearbyPros = PROFESSIONALS.slice(0, 3);
+  const isLoggedIn = !!session?.user?.email;
+  const isAdmin = session?.user?.email === ADMIN_EMAIL;
+  const [reviews, isSaved] = await Promise.all([
+    getReviewsForSchool(school.id),
+    isLoggedIn ? checkSaved(session!.user!.email!, school.id) : Promise.resolve(false),
+  ]);
 
   const TYPE_LABEL: Record<string, string> = {
     particular: 'Particular', publica: 'Pública', bilingue: 'Bilíngue',
@@ -48,10 +73,10 @@ export default async function EscolaPage({ params }: { params: { id: string } })
                 </p>
               </div>
               <div className="flex gap-3 shrink-0">
-                <button className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
-                  <Heart size={16} /> Salvar
-                </button>
-                <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary text-sm">Avaliar escola</Link>
+                <SaveButton schoolId={school.id} schoolName={school.name} initialSaved={isSaved} isLoggedIn={isLoggedIn} />
+                <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary text-sm">
+                  Avaliar escola
+                </Link>
               </div>
             </div>
           </div>
@@ -99,10 +124,8 @@ export default async function EscolaPage({ params }: { params: { id: string } })
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Main */}
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Category ratings */}
             {school.categories.length > 0 && (
               <div className="card">
                 <h2 className="font-bold text-navy text-lg mb-5 flex items-center gap-2">
@@ -124,7 +147,6 @@ export default async function EscolaPage({ params }: { params: { id: string } })
               </div>
             )}
 
-            {/* Description */}
             {school.description && (
               <div className="card">
                 <h2 className="font-bold text-navy text-lg mb-3">Sobre a escola</h2>
@@ -139,69 +161,13 @@ export default async function EscolaPage({ params }: { params: { id: string } })
               </div>
             )}
 
-            {/* Reviews */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="font-bold text-navy text-lg flex items-center gap-2">
-                  <MessageSquare size={20} className="text-coral" /> Avaliações dos pais
-                </h2>
-                <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="text-sm font-bold text-coral hover:underline">+ Avaliar</Link>
-              </div>
-
-              {reviews.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <MessageSquare size={32} className="mx-auto mb-3 opacity-30" />
-                  <p className="font-semibold">Nenhuma avaliação ainda</p>
-                  <p className="text-sm mt-1">Seja o primeiro a avaliar esta escola</p>
-                  <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary text-sm mt-4 inline-block">Avaliar agora</Link>
-                </div>
-              ) : (
-                <div className="space-y-5">
-                  {reviews.map(r => (
-                    <div key={r.id} className="border border-gray-100 rounded-2xl p-5">
-                      <div className="flex items-start gap-3 mb-3">
-                        <div className="w-9 h-9 bg-cream-card rounded-full flex items-center justify-center font-bold text-navy text-sm shrink-0">
-                          {r.isAnonymous ? '?' : r.authorName[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <p className="font-bold text-navy text-sm">{r.isAnonymous ? 'Pai/Mãe anônimo(a)' : r.authorName}</p>
-                            <div className="flex items-center gap-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} size={12} className={i < r.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'} />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-400">{r.stage} · {r.year} · Mensalidade: R$ {r.monthlyFee.toLocaleString('pt-BR')}</p>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 leading-relaxed mb-3">{r.comment}</p>
-                      <div className="grid grid-cols-2 gap-3">
-                        {r.pros && (
-                          <div className="bg-green-50 rounded-xl p-3">
-                            <p className="text-xs font-bold text-green-700 mb-1">✓ Pontos positivos</p>
-                            <p className="text-xs text-green-600">{r.pros}</p>
-                          </div>
-                        )}
-                        {r.cons && (
-                          <div className="bg-red-50 rounded-xl p-3">
-                            <p className="text-xs font-bold text-red-600 mb-1">✗ Pontos negativos</p>
-                            <p className="text-xs text-red-500">{r.cons}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString('pt-BR')}</p>
-                        <div className="flex items-center gap-3">
-                          {r.wouldRecommend && <span className="text-xs text-green-600 font-semibold">✓ Recomenda</span>}
-                          <button className="text-xs text-gray-400 hover:text-navy transition-colors">👍 {r.helpful} útil</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ReviewsSection
+              reviews={reviews}
+              schoolId={school.id}
+              schoolName={school.name}
+              isLoggedIn={isLoggedIn}
+              isAdmin={isAdmin}
+            />
 
             <div className="flex gap-3 items-start bg-amber-50 border border-amber-200 rounded-2xl p-4">
               <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
@@ -211,12 +177,13 @@ export default async function EscolaPage({ params }: { params: { id: string } })
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-5">
             <div className="card bg-navy text-white">
               <h3 className="font-bold text-lg mb-2">Você conhece esta escola?</h3>
               <p className="text-white/70 text-sm mb-4">Compartilhe sua experiência com outros pais.</p>
-              <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary w-full text-center block">Avaliar esta escola</Link>
+              <Link href={`/avaliar?schoolId=${school.id}&schoolName=${encodeURIComponent(school.name)}`} className="btn-primary w-full text-center block">
+                Avaliar esta escola
+              </Link>
             </div>
 
             <div className="card p-0 overflow-hidden h-48">
@@ -233,30 +200,6 @@ export default async function EscolaPage({ params }: { params: { id: string } })
                 <Link href="/precos#escolas" className="btn-secondary text-sm text-center block">Reivindicar perfil</Link>
               </div>
             )}
-
-            <div className="card">
-              <h3 className="font-bold text-navy mb-4">Profissionais próximos</h3>
-              <div className="space-y-3">
-                {nearbyPros.map(p => (
-                  <div key={p.id} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-cream-card rounded-full flex items-center justify-center font-bold text-navy text-sm shrink-0">
-                      {p.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-navy text-sm truncate">{p.name}</p>
-                      <p className="text-xs text-gray-500">{p.specialty} · {p.city}</p>
-                    </div>
-                    <div className="flex items-center gap-0.5">
-                      <Star size={11} className="text-amber-400 fill-amber-400" />
-                      <span className="text-xs font-bold text-navy">{p.rating}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Link href="/profissionais" className="text-sm text-coral font-bold hover:underline mt-4 block">
-                Ver todos os profissionais →
-              </Link>
-            </div>
           </div>
         </div>
       </main>
