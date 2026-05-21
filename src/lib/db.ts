@@ -52,23 +52,33 @@ function rowToReview(r: Record<string, unknown>): Review {
   };
 }
 
-export async function getAllSchools(): Promise<School[]> {
-  const all: School[] = [];
-  const PAGE = 1000;
-  let from = 0;
-  while (true) {
-    const { data, error } = await supabase
-      .from('schools')
-      .select('*')
-      .order('name', { ascending: true })
-      .range(from, from + PAGE - 1);
-    if (error) { console.error('[db getAllSchools] error:', error); break; }
-    if (!data || data.length === 0) break;
-    all.push(...data.map(rowToSchool));
-    if (data.length < PAGE) break;
-    from += PAGE;
-  }
-  return all;
+// Returns schools within a lat/lng bounding box (for map viewport queries)
+export async function getSchoolsByBbox(
+  lat: number, lng: number,
+  deltaLat = 3.5, deltaLng = 5,
+): Promise<School[]> {
+  const { data, error } = await supabase
+    .from('schools')
+    .select('*')
+    .gte('lat', lat - deltaLat)
+    .lte('lat', lat + deltaLat)
+    .gte('lng', lng - deltaLng)
+    .lte('lng', lng + deltaLng)
+    .order('rating', { ascending: false })
+    .limit(8000);
+  if (error || !data) { console.error('[db getSchoolsByBbox]', error); return []; }
+  return data.map(rowToSchool);
+}
+
+// Returns a national sample when no location is available
+export async function getSchoolsSample(limit = 5000): Promise<School[]> {
+  const { data, error } = await supabase
+    .from('schools')
+    .select('*')
+    .order('review_count', { ascending: false })
+    .limit(limit);
+  if (error || !data) { console.error('[db getSchoolsSample]', error); return []; }
+  return data.map(rowToSchool);
 }
 
 export async function getSchoolByIdOrSlug(idOrSlug: string): Promise<School | null> {

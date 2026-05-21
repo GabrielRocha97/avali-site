@@ -40,11 +40,14 @@ export default function BuscarPage() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    fetch('/api/schools')
+    const url = userLocation
+      ? `/api/schools?lat=${userLocation.lat}&lng=${userLocation.lng}`
+      : '/api/schools';
+    fetch(url)
       .then(r => r.json())
       .then(data => { setSchools(Array.isArray(data) ? data : []); setLoadingSchools(false); })
       .catch(() => setLoadingSchools(false));
-  }, []);
+  }, [userLocation]);
 
   // Auto-solicita localização ao entrar na página
   useEffect(() => {
