@@ -81,6 +81,47 @@ export async function getSchoolsSample(limit = 5000): Promise<School[]> {
   return data.map(rowToSchool);
 }
 
+// Returns distinct cities matching a query with averaged coordinates
+export async function searchCities(
+  query: string,
+): Promise<{ city: string; state: string; lat: number; lng: number }[]> {
+  const { data } = await supabase
+    .from('schools')
+    .select('city, state, lat, lng')
+    .ilike('city', `%${query}%`)
+    .order('city')
+    .limit(500);
+
+  const map = new Map<string, { state: string; lat: number; lng: number; n: number }>();
+  for (const r of data || []) {
+    if (!r.city || !r.lat || !r.lng) continue;
+    if (!map.has(r.city)) {
+      map.set(r.city, { state: r.state || '', lat: r.lat, lng: r.lng, n: 1 });
+    } else {
+      const e = map.get(r.city)!;
+      e.lat = (e.lat * e.n + r.lat) / (e.n + 1);
+      e.lng = (e.lng * e.n + r.lng) / (e.n + 1);
+      e.n++;
+    }
+  }
+  return Array.from(map.entries())
+    .slice(0, 8)
+    .map(([city, v]) => ({ city, state: v.state, lat: v.lat, lng: v.lng }));
+}
+
+// Full-text search across all 180k schools by city, name or neighborhood
+export async function searchSchools(query: string): Promise<School[]> {
+  const q = query.trim();
+  const { data, error } = await supabase
+    .from('schools')
+    .select('*')
+    .or(`city.ilike.%${q}%,name.ilike.%${q}%,neighborhood.ilike.%${q}%`)
+    .order('rating', { ascending: false })
+    .limit(3000);
+  if (error || !data) { console.error('[db searchSchools]', error); return []; }
+  return data.map(rowToSchool);
+}
+
 export async function getSchoolByIdOrSlug(idOrSlug: string): Promise<School | null> {
   const { data, error } = await supabase
     .from('schools')

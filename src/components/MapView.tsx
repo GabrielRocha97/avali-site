@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-le
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Star } from 'lucide-react';
 import type { School } from '@/lib/types';
 
@@ -48,9 +48,13 @@ function createClusterIcon(cluster: { getChildCount(): number }) {
   });
 }
 
-function RecenterMap({ center }: { center: [number, number] }) {
+function RecenterMap({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
-  useEffect(() => { map.setView(center, map.getZoom()); }, [center, map]);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    map.flyTo(center, zoom, { duration: 1.2 });
+  }, [center, zoom, map]);
   return null;
 }
 
@@ -62,18 +66,17 @@ interface Props {
 }
 
 export default function MapView({ schools, center = [-15.78, -47.93], zoom = 5, userLocation }: Props) {
-  const mapCenter: [number, number] = userLocation ? [userLocation.lat, userLocation.lng] : center;
-
   return (
-    <MapContainer center={mapCenter} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
+    <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }} scrollWheelZoom>
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
+      <RecenterMap center={center} zoom={zoom} />
+
       {userLocation && (
         <>
-          <RecenterMap center={[userLocation.lat, userLocation.lng]} />
           <Marker position={[userLocation.lat, userLocation.lng]} icon={userMarkerIcon}>
             <Popup><p className="text-xs font-semibold text-navy">Você está aqui</p></Popup>
           </Marker>
